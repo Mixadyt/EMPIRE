@@ -2,7 +2,7 @@
 
 Author: Mixadyt           
 Languages: Powershell, Python            
-Special for: Overbafer1
+Special for: Overbafer1 & NedohackersLite
 
 Some about me:               
 I am a Russian student;           
