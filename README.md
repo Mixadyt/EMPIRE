@@ -1,4 +1,4 @@
-# SteallerShell
+# ShellStealler
 
 Author: Mixadyt           
 Languages: Powershell, Python            
